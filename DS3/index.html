@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Deer and Rabbit Flash Scene</title>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  </head>
+
+  <body>
+    <a-scene>
+      <a-assets>
+        <img id="scene1" src="scene1.png" />
+        <img id="scene2" src="scene2.png" />
+        <img id="scene3" src="scene3.png" />
+        <img id="scene4" src="scene4.png" />
+        <img id="scene5" src="scene5.jpg" />
+
+        <audio id="camera-sound" src="camera with flash.wav"></audio>
+        <audio id="footsteps-sound" src="footsteps.wav"></audio>
+        <audio id="forest-ambience" src="forest_ambience.m4a" preload="auto"></audio>
+        <audio id="twig-snap" src="twig snap 2.mp3"></audio>
+        <audio id="jumpscare-sound" src="jumpscare 1.mp3"></audio>
+      </a-assets>
+
+      <a-sky id="sky" src="#scene1"></a-sky>
+      <a-entity sound="src: #forest-ambience; loop: true; autoplay: true; volume: 0.5;"></a-entity>
+      <a-entity id="audio-trigger"></a-entity>
+
+      <!-- Instruction Texts -->
+      <a-text id="introText" value="You are a nature photographer taking photos of animals."
+              position="0 2 -3" align="center" color="white" visible="false" width="5"></a-text>
+
+      <a-text id="practiceText" value="Try taking a practice photo by looking at the white circle in front of you."
+              position="0 3 -3" align="center" color="white" visible="false" width="5"></a-text>
+
+      <a-text id="deerInstruction" value="You will see a deer first. Take its photo!"
+              position="0 2 -2" align="center" color="white" visible="false" width="3"></a-text>
+
+      <a-text id="turnMessage" value="Do you hear something behind you? Turn around and take its photo!"
+              position="0 2 -2" align="center" color="white" visible="false" width="5"></a-text>
+
+      <a-text id="rabbitInstruction" value="Look down quickly! There is something at your feet. Take its picture!"
+              position="-3 0.5 0" rotation="0 100 0" align="center" color="white" visible="false" width="5"></a-text>
+
+      <!-- Targets -->
+      <a-sphere id="practice" class="target" position="0 2 -6" radius="0.2" color="#FFF" visible="false" opacity="0.5"></a-sphere>
+      <a-sphere id="deer" class="target" position="1 2 -3" radius="0.2" color="#FFF" visible="false" opacity="0.5"></a-sphere>
+      <a-sphere id="rabbit" class="target" position="-4 1.3 2.5" radius="0.2" color="#FFF" visible="false" opacity="0.5"></a-sphere>
+      <a-sphere id="deadrabbit" class="target" position="-4 -4 0" radius="0.2" color="#FFF" visible="false" opacity="0.5"></a-sphere>
+
+      <!-- Camera -->
+      <a-entity id="playerCamera" camera look-controls position="0 1.6 0">
+        <a-entity id="cursor" cursor="fuse: true; fuseTimeout: 800" raycaster="objects: .target"
+                  geometry="primitive: ring; radiusInner: 0.015; radiusOuter: 0.025"
+                  material="color: white; shader: flat" position="0 0 -1"></a-entity>
+
+        <a-plane id="flash" color="white" width="4" height="3" position="0 0 -0.8"
+                 visible="false" material="shader: flat; side: double"></a-plane>
+      </a-entity>
+    </a-scene>
+
+    <script>
+      // === Element References ===
+      const sky = document.querySelector('#sky');
+      const flash = document.getElementById('flash');
+      const deer = document.getElementById('deer');
+      const rabbit = document.getElementById('rabbit');
+      const deadrabbit = document.getElementById('deadrabbit');
+      const practice = document.getElementById('practice');
+
+      const introText = document.getElementById('introText');
+      const practiceText = document.getElementById('practiceText');
+      const deerInstruction = document.getElementById('deerInstruction');
+      const turnMessage = document.getElementById('turnMessage');
+      const rabbitInstruction = document.getElementById('rabbitInstruction');
+
+      const audioTrigger = document.getElementById('audio-trigger');
+
+      // Flags
+      window.practiceDone = false;
+      window.deerSeen = false;
+      window.rabbitSeen = false;
+      window.deadRabbitSeen = false;
+
+      // === Helper Functions ===
+      function playAudioOnTrigger(srcId) {
+        audioTrigger.setAttribute('sound', `src: ${srcId}`);
+        if (audioTrigger.components && audioTrigger.components.sound) {
+          audioTrigger.components.sound.playSound();
+        } else {
+          setTimeout(() => {
+            if (audioTrigger.components && audioTrigger.components.sound) {
+              audioTrigger.components.sound.playSound();
+            }
+          }, 50);
+        }
+      }
+
+      function flashEffect() {
+        flash.setAttribute('visible', 'true');
+        setTimeout(() => flash.setAttribute('visible', 'false'), 150);
+        playAudioOnTrigger('#camera-sound');
+      }
+
+      function handleTarget(el, flagName) {
+        if (!el) return;
+        el.addEventListener('click', () => {
+          if (!window[flagName]) {
+            window[flagName] = true;
+            el.setAttribute('visible', 'false');
+            flashEffect();
+          }
+        });
+      }
+
+      handleTarget(practice, 'practiceDone');
+      handleTarget(deer, 'deerSeen');
+      handleTarget(rabbit, 'rabbitSeen');
+      handleTarget(deadrabbit, 'deadRabbitSeen');
+
+      // === Scene sequence ===
+      const textures = ['#scene1', '#scene2', '#scene3', '#scene4', '#scene5'];
+      const durations = [12000, 6000, 10000, 7500, 7000];
+      let totalDelay = 0;
+
+      textures.forEach((t, i) => {
+        if (i === 4) {
+          setTimeout(() => {
+            // Black screen
+            sky.removeAttribute('src');
+            sky.setAttribute('color', 'black');
+
+            // After 1 second, scene 5 flash + jumpscare
+            setTimeout(() => {
+              sky.setAttribute('color', 'white');
+              sky.setAttribute('src', '#scene5');
+              playAudioOnTrigger('#jumpscare-sound');
+
+              // Remove white overlay after 500ms
+              setTimeout(() => {
+                sky.removeAttribute('color');
+                sky.setAttribute('src', '#scene5');
+              }, 500);
+
+              // Camera stays exactly as user left it
+            }, 1000);
+          }, totalDelay);
+        } else {
+          setTimeout(() => {
+            sky.removeAttribute('color');
+            sky.setAttribute('src', t);
+          }, totalDelay);
+        }
+        totalDelay += durations[i];
+      });
+
+      // === Timed Events ===
+      setTimeout(() => {
+        introText.setAttribute('visible', 'true');
+        setTimeout(() => introText.setAttribute('visible', 'false'), 3000);
+      }, 0);
+
+      setTimeout(() => {
+        practiceText.setAttribute('visible', 'true');
+        practice.setAttribute('visible', 'true');
+        setTimeout(() => practiceText.setAttribute('visible', 'false'), 3000);
+      }, 5000);
+
+      setTimeout(() => {
+        deerInstruction.setAttribute('visible', 'true');
+        setTimeout(() => deerInstruction.setAttribute('visible', 'false'), 3000);
+      }, 10000);
+
+      setTimeout(() => {
+        playAudioOnTrigger('#footsteps-sound');
+        deer.setAttribute('visible', 'true');
+      }, 14000);
+
+      setTimeout(() => {
+        rabbit.setAttribute('visible', 'true');
+      }, 20000);
+
+      setTimeout(() => {
+        playAudioOnTrigger('#twig-snap');
+        setTimeout(() => {
+          turnMessage.setAttribute('visible', 'true');
+          setTimeout(() => turnMessage.setAttribute('visible', 'false'), 4000);
+        }, 350);
+      }, 24000);
+
+      setTimeout(() => {
+        rabbitInstruction.setAttribute('visible', 'true');
+        deadrabbit.setAttribute('visible', 'true');
+        setTimeout(() => rabbitInstruction.setAttribute('visible', 'false'), 3000);
+      }, 31000);
+    </script>
+  </body>
+</html>
